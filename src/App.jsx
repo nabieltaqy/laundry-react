@@ -1,28 +1,30 @@
-import './App.css';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import Sidebar from './components/layout/Sidebar';
+import MainLayout from './components/layout/MainLayout';
+import Dashboard from './pages/Dashboard';
+import AddOrder from './pages/AddOrder';
+import Items from './pages/Items';
+import Services from './pages/Services';
+import Finance from './pages/Finance';
+import Customers from './pages/Customers';
 
 function App() {
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src="Octocat.png" className="App-logo" alt="logo" />
-        <p>
-          GitHub Codespaces <span className="heart">♥️</span> React
-        </p>
-        <p className="small">
-          Edit <code>src/App.jsx</code> and save to reload.
-        </p>
-        <p>
-          <a
-            className="App-link"
-            href="https://reactjs.org"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Learn React
-          </a>
-        </p>
-      </header>
-    </div>
+    <Router>
+      <div className="app-root">
+        <Sidebar />
+        <MainLayout>
+          <Routes>
+            <Route path="/" element={<Dashboard />} />
+            <Route path="/orders" element={<AddOrder />} />
+            <Route path="/items" element={<Items />} />
+            <Route path="/services" element={<Services />} />
+            <Route path="/customers" element={<Customers />} />
+            <Route path="/finance" element={<Finance />} />
+          </Routes>
+        </MainLayout>
+      </div>
+    </Router>
   );
 }
 
