@@ -1,15 +1,19 @@
 import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
   ShoppingCart,
   Package,
   Users,
   Wallet,
+  LogOut,
 } from 'lucide-react';
+import { useAuth } from '../../contexts/AuthContext';
 
 export const Sidebar = () => {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { user, signOut } = useAuth();
 
   const menuItems = [
     { icon: LayoutDashboard, label: 'Dashboard', path: '/' },
@@ -41,7 +45,25 @@ export const Sidebar = () => {
         })}
       </nav>
 
-      <div className="footer">© 2025 LaundryPro</div>
+      <div className="footer">
+        {user && (
+          <div className="user-info">
+            <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.7)', marginBottom: '10px' }}>Logged in as</p>
+            <p style={{ fontSize: '13px', color: 'white', marginBottom: '12px', wordBreak: 'break-all' }}>{user.email}</p>
+            <button
+              className="signout-btn"
+              onClick={async () => {
+                await signOut();
+                navigate('/login');
+              }}
+            >
+              <LogOut size={16} />
+              Sign Out
+            </button>
+          </div>
+        )}
+        © 2025 LaundryPro
+      </div>
     </aside>
   );
 };

@@ -114,7 +114,7 @@ const Services = () => {
 
   return (
     <div>
-      <div className="mb-8" style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+      <div className="page-header mb-8">
         <h1 className="page-title">Services</h1>
         <Button onClick={() => setIsAddModalOpen(true)} variant="primary">
           <Plus size={20} />
