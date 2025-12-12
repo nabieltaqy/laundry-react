@@ -21,6 +21,7 @@
 .sidebar a{display:flex;align-items:center;gap:12px;padding:10px 14px;border-radius:8px;color:rgba(255,255,255,0.85);text-decoration:none;margin-bottom:6px;transition:background 0.2s}
 .sidebar a:hover{background:rgba(255,255,255,0.03)}
 .sidebar a.active{background:var(--primary);color:white}
+.sidebar .mobile-logout-btn{display:none}
 .sidebar .footer{padding:14px;border-top:1px solid rgba(255,255,255,0.04);font-size:12px;color:rgba(255,255,255,0.6)}
 .sidebar .user-info{margin-bottom:20px;padding-bottom:20px;border-top:1px solid rgba(255,255,255,0.1)}
 .sidebar .signout-btn{width:100%;padding:8px 12px;background:rgba(255,255,255,0.1);color:white;border:1px solid rgba(255,255,255,0.2);border-radius:6px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;font-size:13px;transition:all 0.2s}
@@ -40,6 +41,9 @@
   .sidebar a span{display:none}
   .sidebar .footer{display:none}
   .sidebar .signout-btn{display:none}
+  .sidebar .mobile-logout-btn{display:flex;flex-direction:column;gap:4px;padding:8px 12px;font-size:11px;min-width:60px;text-align:center;margin-bottom:0;background:none;border:none;color:rgba(255,255,255,0.85);cursor:pointer;transition:background 0.2s;border-radius:8px}
+  .sidebar .mobile-logout-btn:hover{background:rgba(255,255,255,0.03)}
+  .sidebar .mobile-logout-btn span{display:inline}
   
   .main{margin-left:0;margin-bottom:70px}
   .header .wrap{padding:12px 16px}

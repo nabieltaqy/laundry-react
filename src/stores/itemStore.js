@@ -1,68 +1,79 @@
 import { create } from 'zustand';
+import { itemService } from '../services/supabaseService';
 
 export const useItemStore = create((set, get) => ({
-  items: [
-    // Sample data
-    {
-      id: 1,
-      name: 'Regular Wash',
-      type: 'satuan',
-      price: 15000,
-      description: 'Regular washing service',
-      createdAt: new Date(),
-    },
-    {
-      id: 2,
-      name: 'Kiloan Wash',
-      type: 'kiloan',
-      price: 5000,
-      description: 'Washing per kilogram',
-      createdAt: new Date(),
-    },
-    {
-      id: 3,
-      name: 'Sabun',
-      type: 'product',
-      price: 0,
-      description: 'Laundry soap / detergent',
-      priceEditable: true,
-      createdAt: new Date(),
-    },
-    {
-      id: 4,
-      name: 'Electrical Token',
-      type: 'product',
-      price: 0,
-      description: 'Prepaid electricity token (enter custom amount)',
-      priceEditable: true,
-      createdAt: new Date(),
-    },
-  ],
+  items: [],
+  loading: false,
+  error: null,
+
+  // Fetch all items from Supabase
+  fetchItems: async () => {
+    set({ loading: true, error: null });
+    try {
+      const data = await itemService.getAll();
+      set({ items: data || [] });
+    } catch (error) {
+      console.error('Error fetching items:', error);
+      set({ error: error.message });
+    } finally {
+      set({ loading: false });
+    }
+  },
 
   // Add new item
-  addItem: (item) => set((state) => ({
-    items: [
-      ...state.items,
-      {
-        id: Date.now(),
-        ...item,
-        priceEditable: item.priceEditable || false,
-        createdAt: new Date(),
-      },
-    ],
-  })),
+  addItem: async (item) => {
+    set({ loading: true, error: null });
+    try {
+      console.log('📤 Creating item:', item);
+      const newItem = await itemService.create(item);
+      set((state) => ({
+        items: [...state.items, newItem],
+      }));
+      console.log('✅ Created item:', newItem);
+      // Refresh authoritative data
+      try { await get().fetchItems(); } catch (e) { /* ignore */ }
+      return newItem;
+    } catch (error) {
+      console.error('Error adding item:', error);
+      set({ error: error.message });
+      throw error;
+    } finally {
+      set({ loading: false });
+    }
+  },
 
   // Update item
-  updateItem: (itemId, updatedItem) => set((state) => ({
-    items: state.items.map((item) =>
-      item.id === itemId ? { ...item, ...updatedItem } : item
-    ),
-  })),
+  updateItem: async (itemId, updatedItem) => {
+    set({ loading: true, error: null });
+    try {
+      const updated = await itemService.update(itemId, updatedItem);
+      // Refresh authoritative data
+      try { await get().fetchItems(); } catch (e) { /* ignore */ }
+      return updated;
+    } catch (error) {
+      console.error('Error updating item:', error);
+      set({ error: error.message });
+      throw error;
+    } finally {
+      set({ loading: false });
+    }
+  },
 
   // Delete item
-  deleteItem: (itemId) => set((state) => ({
-    items: state.items.filter((item) => item.id !== itemId),
-  })),
+  deleteItem: async (itemId) => {
+    set({ loading: true, error: null });
+    try {
+      await itemService.delete(itemId);
+      // Refresh authoritative data
+      try { await get().fetchItems(); } catch (e) { /* ignore */ }
+    } catch (error) {
+      console.error('Error deleting item:', error);
+      set({ error: error.message });
+      throw error;
+    } finally {
+      set({ loading: false });
+    }
+  },
 
   // Get all items
   getItems: () => get().items,
@@ -71,5 +82,5 @@ export const useItemStore = create((set, get) => ({
   getItemsByType: (type) => get().items.filter((item) => item.type === type),
 
   // Get item by id
-  getItemById: (itemId) => get().items.find((item) => item.id === itemId),
+  getItemById: (itemId) => get().items.find((item) => String(item.id) === String(itemId)),
 }));

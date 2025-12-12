@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Plus, Edit2, Trash2 } from 'lucide-react';
 import Card from '../components/common/Card';
 import Button from '../components/common/Button';
@@ -13,6 +13,7 @@ const Services = () => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingItemId, setEditingItemId] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -24,6 +25,18 @@ const Services = () => {
   const itemStore = useItemStore();
   // services: only 'satuan' and 'kiloan'
   const services = itemStore.getItems().filter(i => i.type === 'satuan' || i.type === 'kiloan');
+
+  // Fetch items on mount
+  useEffect(() => {
+    const loadItems = async () => {
+      try {
+        await itemStore.fetchItems();
+      } catch (error) {
+        console.error('Failed to load items:', error);
+      }
+    };
+    loadItems();
+  }, [itemStore]);
 
   // Handle form input change
   const handleInputChange = (e) => {
@@ -41,23 +54,29 @@ const Services = () => {
   };
 
   // Add new service
-  const handleAddItem = () => {
+  const handleAddItem = async () => {
     if (!formData.name.trim() || !formData.price) {
       alert('Please fill in all required fields');
       return;
     }
 
-    itemStore.addItem({
-      name: formData.name,
-      type: formData.type,
-      price: formData.price,
-      description: formData.description,
-      priceEditable: false,
-    });
+    setIsLoading(true);
+    try {
+      await itemStore.addItem({
+        name: formData.name,
+        type: formData.type,
+        price: formData.price,
+        description: formData.description,
+      });
 
-    resetForm();
-    setIsAddModalOpen(false);
-    alert('Service added successfully!');
+      resetForm();
+      setIsAddModalOpen(false);
+      alert('Service added successfully!');
+    } catch (error) {
+      alert('Error adding service: ' + error.message);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // Edit service
@@ -68,30 +87,43 @@ const Services = () => {
   };
 
   // Update service
-  const handleUpdateItem = () => {
+  const handleUpdateItem = async () => {
     if (!formData.name.trim() || !formData.price) {
       alert('Please fill in all required fields');
       return;
     }
 
-    itemStore.updateItem(editingItemId, {
-      name: formData.name,
-      type: formData.type,
-      price: formData.price,
-      description: formData.description,
-      priceEditable: false,
-    });
+    setIsLoading(true);
+    try {
+      await itemStore.updateItem(editingItemId, {
+        name: formData.name,
+        type: formData.type,
+        price: formData.price,
+        description: formData.description,
+      });
 
-    resetForm();
-    setIsEditModalOpen(false);
-    alert('Service updated successfully!');
+      resetForm();
+      setIsEditModalOpen(false);
+      alert('Service updated successfully!');
+    } catch (error) {
+      alert('Error updating service: ' + error.message);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // Delete service
-  const handleDeleteItem = (itemId) => {
+  const handleDeleteItem = async (itemId) => {
     if (window.confirm('Are you sure you want to delete this service?')) {
-      itemStore.deleteItem(itemId);
-      alert('Service deleted successfully!');
+      setIsLoading(true);
+      try {
+        await itemStore.deleteItem(itemId);
+        alert('Service deleted successfully!');
+      } catch (error) {
+        alert('Error deleting service: ' + error.message);
+      } finally {
+        setIsLoading(false);
+      }
     }
   };
 
@@ -151,8 +183,8 @@ const Services = () => {
       {/* Add Service Modal */}
       <Modal isOpen={isAddModalOpen} onClose={() => { setIsAddModalOpen(false); resetForm(); }} title="Add New Service" size="md" footer={(
         <>
-          <Button variant="secondary" onClick={() => { setIsAddModalOpen(false); resetForm(); }}>Cancel</Button>
-          <Button variant="primary" onClick={handleAddItem}>Add Service</Button>
+          <Button variant="secondary" onClick={() => { setIsAddModalOpen(false); resetForm(); }} disabled={isLoading}>Cancel</Button>
+          <Button variant="primary" onClick={handleAddItem} disabled={isLoading}>{isLoading ? 'Adding...' : 'Add Service'}</Button>
         </>
       )}>
         <div style={{display:'flex',flexDirection:'column',gap:14}}>
@@ -166,8 +198,8 @@ const Services = () => {
       {/* Edit Service Modal */}
       <Modal isOpen={isEditModalOpen} onClose={() => { setIsEditModalOpen(false); resetForm(); }} title="Edit Service" size="md" footer={(
         <>
-          <Button variant="secondary" onClick={() => { setIsEditModalOpen(false); resetForm(); }}>Cancel</Button>
-          <Button variant="primary" onClick={handleUpdateItem}>Update Service</Button>
+          <Button variant="secondary" onClick={() => { setIsEditModalOpen(false); resetForm(); }} disabled={isLoading}>Cancel</Button>
+          <Button variant="primary" onClick={handleUpdateItem} disabled={isLoading}>{isLoading ? 'Updating...' : 'Update Service'}</Button>
         </>
       )}>
         <div style={{display:'flex',flexDirection:'column',gap:14}}>

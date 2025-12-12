@@ -43,6 +43,19 @@ export const Sidebar = () => {
             </Link>
           );
         })}
+        {user && (
+          <button
+            className="mobile-logout-btn"
+            onClick={async () => {
+              await signOut();
+              navigate('/login');
+            }}
+            title="Sign Out"
+          >
+            <LogOut size={18} />
+            <span>Logout</span>
+          </button>
+        )}
       </nav>
 
       <div className="footer">

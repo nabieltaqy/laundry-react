@@ -22,6 +22,7 @@ const Items = () => {
     price: '',
     description: '',
   });
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const itemStore = useItemStore();
   // items page now shows expense items / products (type 'product' or priceEditable)
@@ -73,24 +74,31 @@ const Items = () => {
   };
 
   // Add new item
-  const handleAddItem = () => {
+  const handleAddItem = async () => {
     if (!formData.name.trim()) {
       alert('Please enter item name');
       return;
     }
 
-    // Create expense item (product) without fixed price; price is entered at expense time
-    itemStore.addItem({
-      name: formData.name,
-      type: 'product',
-      price: 0,
-      priceEditable: true,
-      description: formData.description,
-    });
+    setIsProcessing(true);
+    try {
+      const created = await itemStore.addItem({
+        name: formData.name,
+        type: 'product',
+        price: 0,
+        priceEditable: true,
+        description: formData.description,
+      });
 
-    resetForm();
-    setIsAddModalOpen(false);
-    alert('Item added successfully!');
+      resetForm();
+      setIsAddModalOpen(false);
+      alert('Item added successfully!');
+    } catch (err) {
+      console.error('Error adding item:', err);
+      alert('Failed to add item: ' + (err?.message || err));
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   // Edit item
@@ -107,30 +115,46 @@ const Items = () => {
   };
 
   // Update item
-  const handleUpdateItem = () => {
+  const handleUpdateItem = async () => {
     if (!formData.name.trim()) {
       alert('Please enter item name');
       return;
     }
 
-    itemStore.updateItem(editingItemId, {
-      name: formData.name,
-      type: 'product',
-      price: 0,
-      priceEditable: true,
-      description: formData.description,
-    });
+    setIsProcessing(true);
+    try {
+      await itemStore.updateItem(editingItemId, {
+        name: formData.name,
+        type: 'product',
+        price: 0,
+        priceEditable: true,
+        description: formData.description,
+      });
 
-    resetForm();
-    setIsEditModalOpen(false);
-    alert('Item updated successfully!');
+      resetForm();
+      setIsEditModalOpen(false);
+      alert('Item updated successfully!');
+    } catch (err) {
+      console.error('Error updating item:', err);
+      alert('Failed to update item: ' + (err?.message || err));
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   // Delete item
-  const handleDeleteItem = (itemId) => {
+  const handleDeleteItem = async (itemId) => {
     if (window.confirm('Are you sure you want to delete this item?')) {
-      itemStore.deleteItem(itemId);
-      alert('Item deleted successfully!');
+      setIsProcessing(true);
+      try {
+        await itemStore.deleteItem(itemId);
+        alert('Item deleted successfully!');
+      } catch (err) {
+        console.error('Error deleting item:', err);
+        alert('Failed to delete item: ' + (err?.message || err));
+      } finally {
+        setIsProcessing(false);
+      }
     }
   };
 
@@ -274,8 +298,8 @@ const Items = () => {
             >
               Cancel
             </Button>
-            <Button variant="primary" onClick={handleAddItem}>
-              Add Item
+            <Button variant="primary" onClick={handleAddItem} disabled={isProcessing}>
+              {isProcessing ? 'Adding...' : 'Add Item'}
             </Button>
           </>
         }
@@ -320,8 +344,8 @@ const Items = () => {
             >
               Cancel
             </Button>
-            <Button variant="primary" onClick={handleUpdateItem}>
-              Update Item
+            <Button variant="primary" onClick={handleUpdateItem} disabled={isProcessing}>
+              {isProcessing ? 'Updating...' : 'Update Item'}
             </Button>
           </>
         }
