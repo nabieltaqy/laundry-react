@@ -26,6 +26,7 @@ const Finance = () => {
   const [itemQuantity, setItemQuantity] = useState('');
   const [isNewItemMode, setIsNewItemMode] = useState(false);
   const [newItemData, setNewItemData] = useState({ name: '', type: 'satuan', price: '', priceEditable: false });
+  const [isSubmittingTx, setIsSubmittingTx] = useState(false);
 
   const financeStore = useFinanceStore();
   const orderStore = useOrderStore();
@@ -68,7 +69,7 @@ const Finance = () => {
   };
 
   // Add transaction
-  const handleAddTransaction = () => {
+  const handleAddTransaction = async () => {
     // For expense, validate depending on item type
     if (formData.type === 'expense') {
       if (!selectedItemId) {
@@ -116,13 +117,15 @@ const Finance = () => {
       }
     }
 
-    financeStore.addTransaction({
-      type: formData.type,
-      amount: amount,
-      description: description,
-    });
+    try {
+      setIsSubmittingTx(true);
+      await financeStore.addTransaction({
+        type: formData.type,
+        amount: amount,
+        description: description,
+      });
 
-    setFormData({
+      setFormData({
       type: 'income',
       amount: '',
       description: '',
@@ -132,33 +135,41 @@ const Finance = () => {
     setItemQuantity('');
     setIsNewItemMode(false);
     setNewItemData({ name: '', type: 'satuan', price: '', priceEditable: false });
-    setIsModalOpen(false);
-    alert('Transaction added successfully!');
+      setIsModalOpen(false);
+      alert('Transaction added successfully!');
+    } catch (err) {
+      console.error('Error adding transaction:', err);
+      alert('Failed to add transaction: ' + (err?.message || err));
+    } finally {
+      setIsSubmittingTx(false);
+    }
   };
 
   // Handle add new item for expense
-  const handleAddNewItem = () => {
+  const handleAddNewItem = async () => {
     if (!newItemData.name.trim() || (!newItemData.price && !newItemData.priceEditable)) {
       alert('Please fill in item name and price (or mark price editable)');
       return;
     }
+    try {
+      const created = await itemStore.addItem({
+        name: newItemData.name,
+        type: newItemData.type,
+        price: newItemData.priceEditable ? 0 : parseFloat(newItemData.price),
+        priceEditable: !!newItemData.priceEditable,
+        description: `Expense item - ${newItemData.name}`,
+      });
 
-    itemStore.addItem({
-      name: newItemData.name,
-      type: newItemData.type,
-      price: newItemData.priceEditable ? 0 : parseFloat(newItemData.price),
-      priceEditable: !!newItemData.priceEditable,
-      description: `Expense item - ${newItemData.name}`,
-    });
-
-    // Reset and select the new item
-    const updatedItems = itemStore.getItems();
-    const newItem = updatedItems[updatedItems.length - 1];
-    setSelectedItemId(String(newItem.id));
-    setItemSearchQuery('');
-    setShowItemDropdown(false);
-    setIsNewItemMode(false);
-    setNewItemData({ name: '', type: 'satuan', price: '', priceEditable: false });
+      // Select the created item
+      setSelectedItemId(String(created?.id));
+      setItemSearchQuery('');
+      setShowItemDropdown(false);
+      setIsNewItemMode(false);
+      setNewItemData({ name: '', type: 'satuan', price: '', priceEditable: false });
+    } catch (err) {
+      console.error('Error creating item:', err);
+      alert('Failed to create item: ' + (err?.message || err));
+    }
   };
 
   // Delete transaction
@@ -505,8 +516,8 @@ const Finance = () => {
             >
               Cancel
             </Button>
-            <Button variant="primary" onClick={handleAddTransaction}>
-              Add Transaction
+            <Button variant="primary" onClick={handleAddTransaction} disabled={isSubmittingTx}>
+              {isSubmittingTx ? 'Adding...' : 'Add Transaction'}
             </Button>
           </>
         }

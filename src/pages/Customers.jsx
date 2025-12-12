@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Plus, Edit2, Trash2, Phone, Mail, MapPin, Clock } from 'lucide-react';
 import Card from '../components/common/Card';
 import Button from '../components/common/Button';
@@ -14,6 +14,7 @@ const Customers = () => {
   const [editingCustomerId, setEditingCustomerId] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -27,6 +28,18 @@ const Customers = () => {
   const filteredCustomers = searchQuery
     ? customerStore.searchCustomers(searchQuery)
     : allCustomers;
+
+  // Fetch customers on component mount
+  useEffect(() => {
+    const loadCustomers = async () => {
+      try {
+        await customerStore.fetchCustomers();
+      } catch (error) {
+        console.error('Failed to load customers:', error);
+      }
+    };
+    loadCustomers();
+  }, [customerStore]);
 
   const escapeRegExp = (s = '') => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
@@ -67,22 +80,35 @@ const Customers = () => {
   };
 
   // Add new customer
-  const handleAddCustomer = () => {
+  const handleAddCustomer = async () => {
     if (!formData.name.trim() || !formData.phone.trim()) {
       alert('Please fill in name and phone');
       return;
     }
 
-    customerStore.addCustomer({
-      name: formData.name,
-      phone: formData.phone,
-      email: formData.email,
-      address: formData.address,
-    });
+    console.log('🚀 Starting to add customer...');
+    setIsLoading(true);
+    try {
+      console.log('📍 Calling customerStore.addCustomer with:', formData);
+      await customerStore.addCustomer({
+        name: formData.name,
+        phone: formData.phone,
+        email: formData.email,
+        address: formData.address,
+      });
 
-    resetForm();
-    setIsAddModalOpen(false);
-    alert('Customer added successfully!');
+      console.log('✅ Customer added to store');
+      resetForm();
+      setIsAddModalOpen(false);
+      alert('Customer added successfully!');
+    } catch (error) {
+      console.error('❌ Full error object:', error);
+      const errorMsg = error?.message || error || 'Unknown error';
+      alert('Error adding customer: ' + errorMsg);
+    } finally {
+      console.log('🏁 Finished adding customer');
+      setIsLoading(false);
+    }
   };
 
   // Edit customer
@@ -98,29 +124,43 @@ const Customers = () => {
   };
 
   // Update customer
-  const handleUpdateCustomer = () => {
+  const handleUpdateCustomer = async () => {
     if (!formData.name.trim() || !formData.phone.trim()) {
       alert('Please fill in name and phone');
       return;
     }
 
-    customerStore.updateCustomer(editingCustomerId, {
-      name: formData.name,
-      phone: formData.phone,
-      email: formData.email,
-      address: formData.address,
-    });
+    setIsLoading(true);
+    try {
+      await customerStore.updateCustomer(editingCustomerId, {
+        name: formData.name,
+        phone: formData.phone,
+        email: formData.email,
+        address: formData.address,
+      });
 
-    resetForm();
-    setIsEditModalOpen(false);
-    alert('Customer updated successfully!');
+      resetForm();
+      setIsEditModalOpen(false);
+      alert('Customer updated successfully!');
+    } catch (error) {
+      alert('Error updating customer: ' + error.message);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // Delete customer
-  const handleDeleteCustomer = (customerId) => {
+  const handleDeleteCustomer = async (customerId) => {
     if (window.confirm('Are you sure you want to delete this customer?')) {
-      customerStore.deleteCustomer(customerId);
-      alert('Customer deleted successfully!');
+      setIsLoading(true);
+      try {
+        await customerStore.deleteCustomer(customerId);
+        alert('Customer deleted successfully!');
+      } catch (error) {
+        alert('Error deleting customer: ' + error.message);
+      } finally {
+        setIsLoading(false);
+      }
     }
   };
 
@@ -139,9 +179,15 @@ const Customers = () => {
 
   return (
     <div>
-      <div className="mb-8" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <div className="page-header mb-8">
         <h1 className="page-title">Customers</h1>
-        <Button onClick={() => setIsAddModalOpen(true)} variant="primary">
+        <Button 
+          onClick={() => {
+            console.log('🔵 Add Customer button clicked');
+            setIsAddModalOpen(true);
+          }} 
+          variant="primary"
+        >
           <Plus size={20} />
           Add Customer
         </Button>
@@ -293,11 +339,16 @@ const Customers = () => {
                 setIsAddModalOpen(false);
                 resetForm();
               }}
+              disabled={isLoading}
             >
               Cancel
             </Button>
-            <Button variant="primary" onClick={handleAddCustomer}>
-              Add Customer
+            <Button 
+              variant="primary" 
+              onClick={handleAddCustomer}
+              disabled={isLoading}
+            >
+              {isLoading ? 'Adding...' : 'Add Customer'}
             </Button>
           </>
         }
@@ -387,11 +438,16 @@ const Customers = () => {
                 setIsEditModalOpen(false);
                 resetForm();
               }}
+              disabled={isLoading}
             >
               Cancel
             </Button>
-            <Button variant="primary" onClick={handleUpdateCustomer}>
-              Update Customer
+            <Button 
+              variant="primary" 
+              onClick={handleUpdateCustomer}
+              disabled={isLoading}
+            >
+              {isLoading ? 'Updating...' : 'Update Customer'}
             </Button>
           </>
         }

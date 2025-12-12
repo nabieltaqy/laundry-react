@@ -111,8 +111,10 @@ const AddOrder = () => {
     return items.reduce((total, item) => total + item.price * item.quantity, 0);
   };
 
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   // Submit order
-  const handleSubmitOrder = () => {
+  const handleSubmitOrder = async () => {
     // Validate customer
     let customerId;
     let customerName;
@@ -123,14 +125,22 @@ const AddOrder = () => {
         return;
       }
       // Create new customer
-      customerStore.addCustomer({
-        name: newCustomerData.name,
-        phone: newCustomerData.phone,
-        email: newCustomerData.email,
-        address: newCustomerData.address,
-      });
-      customerId = Date.now();
-      customerName = newCustomerData.name;
+      try {
+        setIsSubmitting(true);
+        const created = await customerStore.addCustomer({
+          name: newCustomerData.name,
+          phone: newCustomerData.phone,
+          email: newCustomerData.email,
+          address: newCustomerData.address,
+        });
+        customerId = created?.id;
+        customerName = created?.name || newCustomerData.name;
+      } catch (err) {
+        console.error('Error creating customer for order:', err);
+        alert('Failed to create customer: ' + (err?.message || err));
+        setIsSubmitting(false);
+        return;
+      }
     } else {
       if (!selectedCustomerId) {
         alert('Please select a customer');
@@ -147,38 +157,48 @@ const AddOrder = () => {
 
     const total = calculateTotal();
 
-    // Add order
-    orderStore.addOrder({
-      customerId,
-      customerName,
-      items,
-      notes,
-      totalAmount: total,
-    });
+    // Add order and transaction
+    try {
+      const createdOrder = await orderStore.addOrder({
+        customerId,
+        status: 'pending',
+        totalPrice: total,
+        notes,
+      });
 
-    // Add finance transaction (income)
-    financeStore.addTransaction({
-      type: 'income',
-      amount: total,
-      description: `Order from ${customerName}`,
-      orderId: Date.now(),
-    });
+      // Create finance transaction (income) and link to created order
+      try {
+        await financeStore.addTransaction({
+          type: 'income',
+          amount: total,
+          description: `Order from ${customerName}`,
+          orderId: createdOrder?.id,
+        });
+      } catch (txErr) {
+        console.error('Failed to create finance transaction:', txErr);
+      }
 
-    // Reset form
-    setSelectedCustomerId('');
-    setCustomerSearchQuery('');
-    setShowCustomerDropdown(false);
-    setSelectedItemId('');
-    setItemSearchQuery('');
-    setShowItemDropdown(false);
-    setQuantity('');
-    setNotes('');
-    setItems([]);
-    setIsNewCustomerMode(false);
-    setNewCustomerData({ name: '', phone: '', email: '', address: '' });
-    setIsModalOpen(false);
+      // Reset form
+      setSelectedCustomerId('');
+      setCustomerSearchQuery('');
+      setShowCustomerDropdown(false);
+      setSelectedItemId('');
+      setItemSearchQuery('');
+      setShowItemDropdown(false);
+      setQuantity('');
+      setNotes('');
+      setItems([]);
+      setIsNewCustomerMode(false);
+      setNewCustomerData({ name: '', phone: '', email: '', address: '' });
+      setIsModalOpen(false);
 
-    alert('Order added successfully!');
+      alert('Order added successfully!');
+    } catch (err) {
+      console.error('Error creating order:', err);
+      alert('Failed to create order: ' + (err?.message || err));
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const itemColumns = [
@@ -334,8 +354,8 @@ const AddOrder = () => {
             }}>
               Cancel
             </Button>
-            <Button variant="primary" onClick={handleSubmitOrder}>
-              Create Order
+            <Button variant="primary" onClick={handleSubmitOrder} disabled={isSubmitting}>
+              {isSubmitting ? 'Creating...' : 'Create Order'}
             </Button>
           </>
         }

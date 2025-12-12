@@ -1,19 +1,44 @@
 import { create } from 'zustand';
+import { transactionService, analyticsService } from '../services/supabaseService';
 
 export const useFinanceStore = create((set, get) => ({
   transactions: [],
+  loading: false,
+  error: null,
+
+  // Fetch all transactions from Supabase
+  fetchTransactions: async () => {
+    set({ loading: true, error: null });
+    try {
+      const data = await transactionService.getAll();
+      set({ transactions: data || [] });
+    } catch (error) {
+      console.error('Error fetching transactions:', error);
+      set({ error: error.message });
+    } finally {
+      set({ loading: false });
+    }
+  },
 
   // Add transaction (income or expense)
-  addTransaction: (transaction) => set((state) => ({
-    transactions: [
-      ...state.transactions,
-      {
-        id: Date.now(),
-        ...transaction,
-        createdAt: new Date(),
-      },
-    ],
-  })),
+  addTransaction: async (transaction) => {
+    set({ loading: true, error: null });
+    try {
+      console.log('📤 Creating transaction:', transaction);
+      const newTransaction = await transactionService.create(transaction);
+      set((state) => ({
+        transactions: [...state.transactions, newTransaction],
+      }));
+      console.log('✅ Created transaction:', newTransaction);
+      return newTransaction;
+    } catch (error) {
+      console.error('Error adding transaction:', error);
+      set({ error: error.message });
+      throw error;
+    } finally {
+      set({ loading: false });
+    }
+  },
 
   // Get all transactions
   getTransactions: () => get().transactions,
@@ -26,7 +51,7 @@ export const useFinanceStore = create((set, get) => ({
   // Get transactions by date range
   getTransactionsByDateRange: (startDate, endDate) => {
     return get().transactions.filter((t) => {
-      const transDate = new Date(t.createdAt);
+      const transDate = new Date(t.created_at);
       return transDate >= startDate && transDate <= endDate;
     });
   },
@@ -35,39 +60,14 @@ export const useFinanceStore = create((set, get) => ({
   getTotalIncome: () => {
     return get().transactions
       .filter((t) => t.type === 'income')
-      .reduce((total, t) => total + t.amount, 0);
+      .reduce((total, t) => total + (t.amount || 0), 0);
   },
 
   // Get total expense
   getTotalExpense: () => {
     return get().transactions
       .filter((t) => t.type === 'expense')
-      .reduce((total, t) => total + t.amount, 0);
-  },
-
-  // Get income by date
-  getIncomeByDate: (date) => {
-    const transactions = get().transactions.filter((t) => {
-      const transDate = new Date(t.createdAt);
-      return (
-        t.type === 'income' &&
-        transDate.toDateString() === new Date(date).toDateString()
-      );
-    });
-    return transactions.reduce((total, t) => total + t.amount, 0);
-  },
-
-  // Get income for month
-  getIncomeByMonth: (year, month) => {
-    const transactions = get().transactions.filter((t) => {
-      const transDate = new Date(t.createdAt);
-      return (
-        t.type === 'income' &&
-        transDate.getFullYear() === year &&
-        transDate.getMonth() === month
-      );
-    });
-    return transactions.reduce((total, t) => total + t.amount, 0);
+      .reduce((total, t) => total + (t.amount || 0), 0);
   },
 
   // Get balance
