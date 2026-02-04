@@ -9,6 +9,12 @@ export const AuthProvider = ({ children }) => {
   const [error, setError] = useState(null);
 
   useEffect(() => {
+    if (!supabase) {
+      setError('Supabase auth is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.');
+      setLoading(false);
+      return;
+    }
+
     // Check if user is already logged in
     const checkUser = async () => {
       try {
@@ -34,6 +40,11 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const signUp = async (email, password) => {
+    if (!supabase) {
+      const error = new Error('Supabase auth is not configured.');
+      setError(error.message);
+      throw error;
+    }
     try {
       setError(null);
       const { data, error: signUpError } = await supabase.auth.signUp({
@@ -51,6 +62,11 @@ export const AuthProvider = ({ children }) => {
   };
 
   const signIn = async (email, password) => {
+    if (!supabase) {
+      const error = new Error('Supabase auth is not configured.');
+      setError(error.message);
+      throw error;
+    }
     try {
       setError(null);
       const { data, error: signInError } = await supabase.auth.signInWithPassword({
@@ -68,6 +84,11 @@ export const AuthProvider = ({ children }) => {
   };
 
   const signOut = async () => {
+    if (!supabase) {
+      const error = new Error('Supabase auth is not configured.');
+      setError(error.message);
+      throw error;
+    }
     try {
       setError(null);
       const { error: signOutError } = await supabase.auth.signOut();

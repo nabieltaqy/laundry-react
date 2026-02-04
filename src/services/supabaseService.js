@@ -2,23 +2,55 @@ import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const apiBaseUrl = import.meta.env.VITE_API_BASE_URL;
 
-console.log('🔧 Supabase Config:');
-console.log('URL:', supabaseUrl);
-console.log('Key exists:', !!supabaseAnonKey);
+const useApi = Boolean(apiBaseUrl);
+const supabaseConfigured = Boolean(supabaseUrl && supabaseAnonKey);
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.error('❌ Missing Supabase environment variables');
-  throw new Error('Missing Supabase credentials in .env.local');
+if (useApi) {
+  console.log('🔧 Using Go API backend for data:', apiBaseUrl);
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+if (!supabaseConfigured) {
+  console.warn('⚠️ Supabase credentials not found. Auth features will be disabled.');
+}
 
-console.log('✅ Supabase client initialized');
+export const supabase = supabaseConfigured ? createClient(supabaseUrl, supabaseAnonKey) : null;
+
+const apiRequest = async (path, options = {}) => {
+  const response = await fetch(`${apiBaseUrl}${path}`, {
+    headers: {
+      'Content-Type': 'application/json',
+      ...(options.headers || {}),
+    },
+    ...options,
+  });
+
+  if (!response.ok) {
+    const message = await response.text();
+    throw new Error(message || `Request failed with status ${response.status}`);
+  }
+
+  if (response.status === 204) {
+    return null;
+  }
+
+  return response.json();
+};
+
+const ensureSupabase = () => {
+  if (!supabase) {
+    throw new Error('Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.');
+  }
+};
 
 // Customer Service
 export const customerService = {
   getAll: async () => {
+    if (useApi) {
+      return apiRequest('/customers');
+    }
+    ensureSupabase();
     try {
       console.log('📥 Fetching all customers...');
       const { data, error } = await supabase
@@ -36,6 +68,10 @@ export const customerService = {
     }
   },
   getById: async (id) => {
+    if (useApi) {
+      return apiRequest(`/customers/${id}`);
+    }
+    ensureSupabase();
     try {
       console.log('📥 Fetching customer:', id);
       const { data, error } = await supabase
@@ -51,6 +87,13 @@ export const customerService = {
     }
   },
   create: async (customer) => {
+    if (useApi) {
+      return apiRequest('/customers', {
+        method: 'POST',
+        body: JSON.stringify(customer),
+      });
+    }
+    ensureSupabase();
     try {
       console.log('📤 Creating customer:', customer);
       
@@ -83,6 +126,13 @@ export const customerService = {
     }
   },
   update: async (id, customer) => {
+    if (useApi) {
+      return apiRequest(`/customers/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(customer),
+      });
+    }
+    ensureSupabase();
     try {
       console.log('📝 Updating customer:', id, customer);
       const { data, error } = await supabase
@@ -99,6 +149,11 @@ export const customerService = {
     }
   },
   delete: async (id) => {
+    if (useApi) {
+      await apiRequest(`/customers/${id}`, { method: 'DELETE' });
+      return;
+    }
+    ensureSupabase();
     try {
       console.log('🗑️ Deleting customer:', id);
       const { error } = await supabase
@@ -117,6 +172,10 @@ export const customerService = {
 // Item Service
 export const itemService = {
   getAll: async () => {
+    if (useApi) {
+      return apiRequest('/items');
+    }
+    ensureSupabase();
     const { data, error } = await supabase
       .from('items')
       .select('*');
@@ -124,6 +183,10 @@ export const itemService = {
     return data;
   },
   getById: async (id) => {
+    if (useApi) {
+      return apiRequest(`/items/${id}`);
+    }
+    ensureSupabase();
     const { data, error } = await supabase
       .from('items')
       .select('*')
@@ -133,6 +196,13 @@ export const itemService = {
     return data;
   },
   create: async (item) => {
+    if (useApi) {
+      return apiRequest('/items', {
+        method: 'POST',
+        body: JSON.stringify(item),
+      });
+    }
+    ensureSupabase();
     const { data, error } = await supabase
       .from('items')
       .insert([item])
@@ -141,6 +211,13 @@ export const itemService = {
     return data[0];
   },
   update: async (id, item) => {
+    if (useApi) {
+      return apiRequest(`/items/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(item),
+      });
+    }
+    ensureSupabase();
     const { data, error } = await supabase
       .from('items')
       .update(item)
@@ -150,6 +227,11 @@ export const itemService = {
     return data[0];
   },
   delete: async (id) => {
+    if (useApi) {
+      await apiRequest(`/items/${id}`, { method: 'DELETE' });
+      return;
+    }
+    ensureSupabase();
     const { error } = await supabase
       .from('items')
       .delete()
@@ -161,6 +243,10 @@ export const itemService = {
 // Order Service
 export const orderService = {
   getAll: async () => {
+    if (useApi) {
+      return apiRequest('/orders');
+    }
+    ensureSupabase();
     const { data, error } = await supabase
       .from('orders')
       .select('*');
@@ -168,6 +254,10 @@ export const orderService = {
     return data;
   },
   getById: async (id) => {
+    if (useApi) {
+      return apiRequest(`/orders/${id}`);
+    }
+    ensureSupabase();
     const { data, error } = await supabase
       .from('orders')
       .select('*')
@@ -177,6 +267,13 @@ export const orderService = {
     return data;
   },
   create: async (order) => {
+    if (useApi) {
+      return apiRequest('/orders', {
+        method: 'POST',
+        body: JSON.stringify(order),
+      });
+    }
+    ensureSupabase();
     const { data, error } = await supabase
       .from('orders')
       .insert([order])
@@ -185,6 +282,13 @@ export const orderService = {
     return data[0];
   },
   update: async (id, order) => {
+    if (useApi) {
+      return apiRequest(`/orders/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(order),
+      });
+    }
+    ensureSupabase();
     const { data, error } = await supabase
       .from('orders')
       .update(order)
@@ -194,6 +298,11 @@ export const orderService = {
     return data[0];
   },
   delete: async (id) => {
+    if (useApi) {
+      await apiRequest(`/orders/${id}`, { method: 'DELETE' });
+      return;
+    }
+    ensureSupabase();
     const { error } = await supabase
       .from('orders')
       .delete()
@@ -205,6 +314,10 @@ export const orderService = {
 // Transaction Service
 export const transactionService = {
   getAll: async () => {
+    if (useApi) {
+      return apiRequest('/transactions');
+    }
+    ensureSupabase();
     const { data, error } = await supabase
       .from('transactions')
       .select('*');
@@ -212,6 +325,13 @@ export const transactionService = {
     return data;
   },
   create: async (transaction) => {
+    if (useApi) {
+      return apiRequest('/transactions', {
+        method: 'POST',
+        body: JSON.stringify(transaction),
+      });
+    }
+    ensureSupabase();
     const { data, error } = await supabase
       .from('transactions')
       .insert([transaction])
@@ -224,6 +344,11 @@ export const transactionService = {
 // Analytics Service
 export const analyticsService = {
   getTotalRevenue: async () => {
+    if (useApi) {
+      const data = await apiRequest('/analytics/total-revenue');
+      return data.total || 0;
+    }
+    ensureSupabase();
     const { data, error } = await supabase
       .from('transactions')
       .select('amount');
@@ -231,6 +356,11 @@ export const analyticsService = {
     return data.reduce((sum, t) => sum + (t.amount || 0), 0);
   },
   getTotalOrders: async () => {
+    if (useApi) {
+      const data = await apiRequest('/analytics/total-orders');
+      return data.count || 0;
+    }
+    ensureSupabase();
     const { count, error } = await supabase
       .from('orders')
       .select('*', { count: 'exact', head: true });
